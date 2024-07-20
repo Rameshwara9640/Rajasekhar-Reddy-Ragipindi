@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extract and Replace Text with Regex</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #009999; /* Light blue background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+        }
+        .column {
+            flex: 1;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        h1 {
+            color: #db0011;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        input[type="file"],
+        input[type="text"] {
+            margin: 10px 0;
+            padding: 10px;
+            width: calc(100% - 20px);
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #db0011;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #a5000c;
+        }
+        pre {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        .file-label {
+            display: block;
+            font-size: 14px;
+            margin-top: 20px;
+            color: #333;
+        }
+        .file-label input {
+            display: none;
+        }
+        .file-label span {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #db0011;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .file-label span:hover {
+            background-color: #a5000c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="column">
+            <h1>Extract the connection path from the script</h1>
+            <label class="file-label">
+                <input type="file" id="fileInputExtract" multiple>
+                <span>Select Files</span>
+            </label>
+            <div id="selectedFilesExtract"></div>
+            <button id="extractButton">Extract Text</button>
+            <pre id="outputExtract"></pre>
+        </div>
+        <div class="column">
+            <h1>Replace the connection name in the script</h1>
+            <label class="file-label">
+                <input type="file" id="fileInputReplace" multiple>
+                <span>Select Files</span>
+            </label>
+            <div id="selectedFilesReplace"></div>
+            <input type="text" id="searchText" placeholder="Search text">
+            <input type="text" id="replaceText" placeholder="Replace with">
+            <button id="replaceButton">Replace Text</button>
+            <pre id="outputReplace"></pre>
+        </div>
+    </div>
+
+    <script>
+        // Function to extract text using a regular expression
+        function extractText(content, regexPattern) {
+            const matches = content.match(regexPattern);
+            return matches || [];
+        }
+
+        // Function to handle the extract button click
+        function onExtractButtonClick() {
+            const fileInput = document.getElementById('fileInputExtract');
+            const output = document.getElementById('outputExtract');
+            
+            if (fileInput.files.length === 0) {
+                output.textContent = 'Please select at least one file.';
+                return;
+            }
+
+            output.textContent = ''; // Clear previous output
+
+            const regexPattern = /\[lib[^\]]*\]/g;
+            const files = Array.from(fileInput.files);
+
+            files.forEach(file => {
+                const reader = new FileReader();
+
+                reader.onload = function(event) {
+                    const content = event.target.result;
+                    const extractedText = extractText(content, regexPattern);
+                    const fileName = file.name;
+                    
+                    output.textContent += `File: ${fileName}\n`;
+                    output.textContent += extractedText.join('\n') + '\n\n';
+                };
+
+                reader.readAsText(file);
+            });
+        }
+
+        // Function to handle the replace button click
+        function onReplaceButtonClick() {
+            const fileInput = document.getElementById('fileInputReplace');
+            const output = document.getElementById('outputReplace');
+            const searchText = document.getElementById('searchText').value;
+            const replaceText = document.getElementById('replaceText').value;
+            
+            if (fileInput.files.length === 0) {
+                output.textContent = 'Please select at least one file.';
+                return;
+            }
+
+            if (searchText === '') {
+                output.textContent = 'Please enter the text to search for.';
+                return;
+            }
+
+            output.textContent = ''; // Clear previous output
+
+            const files = Array.from(fileInput.files);
+
+            files.forEach(file => {
+                const reader = new FileReader();
+
+                reader.onload = function(event) {
+                    let content = event.target.result;
+                    const fileName = file.name;
+                    
+                    const regexPattern = new RegExp(searchText, 'g');
+                    content = content.replace(regexPattern, replaceText);
+
+                    // Assuming you want to display the result in case of success only.
+                    output.textContent = 'Connection name is successfully updated.';
+                };
+
+                reader.onerror = function() {
+                    output.textContent = `Error reading file: ${file.name}`;
+                };
+
+                reader.readAsText(file);
+            });
+        }
+
+        // Function to display selected files
+        function displaySelectedFiles(inputElement, displayElementId) {
+            const displayElement = document.getElementById(displayElementId);
+            const files = Array.from(inputElement.files);
+            displayElement.innerHTML = '';
+
+            if (files.length > 0) {
+                const fileList = document.createElement('ul');
+                files.forEach(file => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = file.name;
+                    fileList.appendChild(listItem);
+                });
+                displayElement.appendChild(fileList);
+            } else {
+                displayElement.textContent = 'No files selected.';
+            }
+        }
+
+        // Add event listener to the extract button
+        document.getElementById('extractButton').addEventListener('click', onExtractButtonClick);
+
+        // Add event listener to the replace button
+        document.getElementById('replaceButton').addEventListener('click', onReplaceButtonClick);
+
+        // Add event listeners to file inputs to display selected files
+        document.getElementById('fileInputExtract').addEventListener('change', function() {
+            displaySelectedFiles(this, 'selectedFilesExtract');
+        });
+
+        document.getElementById('fileInputReplace').addEventListener('change', function() {
+            displaySelectedFiles(this, 'selectedFilesReplace');
+        });
+    </script>
+</body>
+</html>
